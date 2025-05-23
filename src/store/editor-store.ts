@@ -22,6 +22,7 @@ export interface QueryInterface {
 export interface EditorState {
   // Widgets state
   widgets: CanvasWidgetProps[];
+  datasource: object;
   selectedWidgetId: string | null;
 
   // Queries state
@@ -42,6 +43,8 @@ export interface EditorState {
   updateWidget: (widgetId: string, data: Partial<CanvasWidgetProps>) => void;
   removeWidget: (widgetId: string) => void;
   selectWidget: (widgetId: string | null) => void;
+
+  updateDataSource: () => void;
 
   // Actions for queries
   addQuery: (query: QueryInterface) => void;
@@ -82,6 +85,8 @@ export const useEditorStore = create<EditorState>()(
         },
       ],
       selectedWidgetId: null,
+
+      datasource: {},
 
       // Initial queries state
       queries: [
@@ -174,6 +179,23 @@ export const useEditorStore = create<EditorState>()(
       selectWidget: (widgetId) => set(() => ({
         selectedWidgetId: widgetId
       })),
+
+      updateDataSource: () => {
+        set((state) => ({
+          datasource: {
+            currentAppInfo: {
+              name: 'jiuyu-appsmith',
+              version: '1.0.0',
+            },
+            currentUserInfo: {
+              name: 'jiuyu',
+              email: 'jiuyu@jiuyu',
+              age: 18,
+            },
+            widgets: state.widgets,
+          },
+        }));
+      },
 
       // Query actions
       addQuery: (query) => {

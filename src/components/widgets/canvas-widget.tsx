@@ -1,18 +1,19 @@
 'use client';
 
 import type React from 'react';
-import {useState, useRef, useCallback, useEffect} from 'react';
+import {useState, useRef, useCallback, useEffect, useMemo} from 'react';
 import type {CanvasWidgetProps} from '../layout/main-canvas';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {cn} from '@/lib/utils';
-import {stat} from 'fs';
-import {throttle} from '@/lib/tool';
+import {intercept} from '../variables/core';
+import {useEditorStore} from '@/store/editor-store';
 
 interface WidgetContainerProps {
   widget: CanvasWidgetProps;
   isSelected: boolean;
   onClick: () => void;
+  setMovingWidgetId: (widgetId: string) => void;
   onResize?: (
     widgetId: string,
     newSize: {width: number; height: number}
@@ -26,21 +27,26 @@ export default function CanvasWidget({
   onClick,
   onResize,
   onMove,
+  setMovingWidgetId,
 }: WidgetContainerProps) {
   const resizingRef = useRef(false);
-  const [moving, setMoving] = useState(false);
-  // const moving = useRef(false)
+  // const [moving, setMoving] = useState(false);
+  const moving = useRef(false);
   const initialPos = useRef({x: 0, y: 0});
   const [initialSize, setInitialSize] = useState({width: 0, height: 0});
   const widgetRef = useRef<HTMLDivElement>(null);
+  const datasource = useEditorStore((state) => state.datasource);
 
-  const style = {
-    position: 'absolute' as const,
-    left: `${widget.position.x}px`,
-    top: `${widget.position.y}px`,
-    width: `${widget.size.width}px`,
-    height: `${widget.size.height}px`,
-  };
+  const style = useMemo(() => {
+    // console.log(widget.position, 'widget.position---');
+    return {
+      position: 'absolute' as const,
+      left: `${widget.position.x}px`,
+      top: `${widget.position.y}px`,
+      width: `${widget.size.width}px`,
+      height: `${widget.size.height}px`,
+    };
+  }, [widget.position, widget.size.width, widget.size.height]);
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,39 +103,43 @@ export default function CanvasWidget({
 
   const handleMoveStart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setMoving(true);
+    moving.current = true;
+    // setMoving(true);
 
     initialPos.current = {
       x: e.clientX - widget.position.x,
       y: e.clientY - widget.position.y,
     };
-
-    handleMoveMove(e)
-
+    setMovingWidgetId(widget.id);
     // Add event listeners for mouse move and up
     document.addEventListener('mousemove', handleMoveMove);
     document.addEventListener('mouseup', handleMoveEnd);
   };
 
-  const handleMoveMove = useCallback((e: MouseEvent) => {
-    console.log(moving, 'handleMoveMove');
-    if (!moving) return;
+  const handleMoveMove = useCallback(
+    (e: MouseEvent) => {
+      // console.log(moving, 'handleMoveMove');
+      if (!moving.current) return;
 
-    const newX = e.clientX - initialPos.current.x;
-    // console.log("🚀 ~ handleMoveMove ~ newX:", newX)
-    const newY = e.clientY - initialPos.current.y;
+      const newX = e.clientX - initialPos.current.x;
+      const newY = e.clientY - initialPos.current.y;
+      // console.log("🚀 ~ handleMoveMove ~ newX:", newX)
 
-    if (widgetRef.current) {
-      widgetRef.current.style.left = `${newX}px`;
-      widgetRef.current.style.top = `${newY}px`;
-    }
-  }, [moving]);
+      // widget.position = {x: newX, y: newY};
+      if (widgetRef.current) {
+        widgetRef.current.style.left = `${newX}px`;
+        widgetRef.current.style.top = `${newY}px`;
+      }
+    },
+    [moving, widget]
+  );
 
   const handleMoveEnd = () => {
-    setMoving(false);
-
+    // setMoving(false);
+    moving.current = false;
+    setMovingWidgetId('');
     // Remove event listeners
-    document.removeEventListener('mousemove',handleMoveMove);
+    document.removeEventListener('mousemove', handleMoveMove);
     document.removeEventListener('mouseup', handleMoveEnd);
 
     // Call the onMove callback if provided
@@ -143,7 +153,13 @@ export default function CanvasWidget({
   const renderWidget = () => {
     switch (widget.type) {
       case 'button':
-        return <Button className='w-full h-full'>{widget.name}</Button>;
+        if (widget.name && widget.name.includes('{{')) {
+          const {result} = intercept(widget.name || '', datasource);
+          return <Button className='w-full h-full'>{result}</Button>;
+        } else {
+          return <Button className='w-full h-full'>{widget.name}</Button>;
+        }
+
       case 'input':
         return <Input className='w-full h-full' placeholder={widget.name} />;
       case 'table':

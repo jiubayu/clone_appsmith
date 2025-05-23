@@ -1,9 +1,10 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Input} from '@/components/ui/input';
+import JsonView from '@uiw/react-json-view';
 import {
   Search,
   PlusCircle,
@@ -25,6 +26,7 @@ import {
 import {Button} from '@/components/ui/button';
 import {cn} from '@/lib/utils';
 import WidgetItem from './widget-item';
+import { useEditorStore } from '@/store/editor-store';
 
 const widgets = [
   {id: 'button', name: 'Button', icon: <SquareIcon className='h-4 w-4' />},
@@ -64,13 +66,17 @@ const pages = [
 ];
 
 export function LeftSidebar() {
+  const { widgets } = useEditorStore((state) => state);
+  const { datasource } = useEditorStore((state) => state);
+  const updateDataSource = useEditorStore((state) => state.updateDataSource);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPages, setExpandedPages] = useState(true);
   const [expandedQueries, setExpandedQueries] = useState(true);
   const [expandedDatasources, setExpandedDatasources] = useState(true);
 
   const filteredWidgets = widgets.filter((widget) =>
-    widget.name.toLowerCase().includes(searchQuery.toLowerCase())
+    widget.name && widget.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   // console.log("🚀 ~ LeftSidebar ~ filteredWidgets:", filteredWidgets)
 
@@ -79,8 +85,12 @@ export function LeftSidebar() {
   );
 
   const moveCard = (dragIndex: number, hoverIndex: number) => {
-    console.log('🚀 ~ moveCard ~ dragIndex:', dragIndex, hoverIndex);
+    // console.log('🚀 ~ moveCard ~ dragIndex:', dragIndex, hoverIndex);
   };
+  
+  useEffect(() => {
+    updateDataSource()
+  }, [])
 
   return (
     <div className='h-full border-r bg-background flex flex-col'>
@@ -95,6 +105,9 @@ export function LeftSidebar() {
             </TabsTrigger>
             <TabsTrigger value='queries' className='flex-1'>
               Queries
+            </TabsTrigger>
+            <TabsTrigger value='datasource' className='flex-1'>
+              Datasource
             </TabsTrigger>
           </TabsList>
         </div>
@@ -163,6 +176,19 @@ export function LeftSidebar() {
               ))}
             </div>
           </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value='datasource' className='flex-1 p-0 flex flex-col'>
+          <div className='w-full h-full py-2'>
+            {/* <div className='px-4 py-2 mb-1 text-sm font-semibold'>变量系统</div> */}
+            <div className='w-full h-[100vh] px-4 overflow-auto'>
+              <JsonView
+                value={datasource}
+                enableClipboard={false}
+                displayObjectSize={false}
+              />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value='queries' className='flex-1 p-0 flex flex-col'>

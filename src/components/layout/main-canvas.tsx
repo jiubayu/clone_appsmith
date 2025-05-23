@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useState } from "react";
 import { useDrop } from "react-dnd";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +26,7 @@ interface DragItem {
 
 export function MainCanvas() {
   const widgets = useEditorStore((state) => state.widgets);
+  const [movingWidgetId, setMovingWidgetId] = useState<string | null>(null);
   // console.log("🚀 ~ MainCanvas ~ widgets:", widgets)
   
   const selectedWidgetId = useEditorStore((state) => state.selectedWidgetId);
@@ -59,7 +61,7 @@ export function MainCanvas() {
   });
 
   const handleWidgetClick = (id: string) => {
-    console.log("🚀 ~ handleWidgetClick ~ id:", id)
+    // console.log("🚀 ~ handleWidgetClick ~ id:", id)
     selectWidget(id);
   };
 
@@ -85,7 +87,7 @@ export function MainCanvas() {
         </div>
       </div>
       <ScrollArea className='flex-1 relative'>
-        <CanvasBg moving={false} />
+        <CanvasBg moving={movingWidgetId} />
         <div
           id='canvas-area'
           ref={drop}
@@ -103,6 +105,7 @@ export function MainCanvas() {
               onClick={() => handleWidgetClick(widget.id)}
               onResize={handleWidgetResize}
               onMove={handleWidgetMove}
+              setMovingWidgetId={setMovingWidgetId}
             />
           ))}
         </div>
