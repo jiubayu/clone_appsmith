@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import {useState, useRef, useCallback, useEffect, useMemo} from 'react';
+import {useState, useRef, useCallback, useEffect, useMemo, use} from 'react';
 import type {CanvasWidgetProps} from '../layout/main-canvas';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -39,12 +39,14 @@ export default function CanvasWidget({
 
   const style = useMemo(() => {
     // console.log(widget.position, 'widget.position---');
+    // console.log('widget-', widget.position.x);
     return {
       position: 'absolute' as const,
       left: `${widget.position.x}px`,
       top: `${widget.position.y}px`,
       width: `${widget.size.width}px`,
       height: `${widget.size.height}px`,
+      userSelect: 'none',
     };
   }, [widget.position, widget.size.width, widget.size.height]);
 
@@ -81,9 +83,12 @@ export default function CanvasWidget({
     const newWidth = Math.max(1, initialSize.width + deltaX);
     const newHeight = Math.max(2, initialSize.height + deltaY);
     // console.log(widgetRef.current, 'widgetRef.current');
-    if (widgetRef.current) {
-      widgetRef.current.style.width = `${newWidth}px`;
-      widgetRef.current.style.height = `${newHeight}px`;
+    // if (widgetRef.current) {
+    //   widgetRef.current.style.width = `${newWidth}px`;
+    //   widgetRef.current.style.height = `${newHeight}px`;
+    // }
+    if (onResize && widgetRef.current) {
+      onResize(widget.id, {width: newWidth, height: newHeight});
     }
   };
 
@@ -118,7 +123,7 @@ export default function CanvasWidget({
 
   const handleMoveMove = useCallback(
     (e: MouseEvent) => {
-      // console.log(moving, 'handleMoveMove');
+      // console.log('handleMoveMove');
       if (!moving.current) return;
 
       const newX = e.clientX - initialPos.current.x;
@@ -126,16 +131,18 @@ export default function CanvasWidget({
       // console.log("🚀 ~ handleMoveMove ~ newX:", newX)
 
       // widget.position = {x: newX, y: newY};
-      if (widgetRef.current) {
-        widgetRef.current.style.left = `${newX}px`;
-        widgetRef.current.style.top = `${newY}px`;
+      // if (widgetRef.current) {
+      //   widgetRef.current.style.left = `${newX}px`;
+      //   widgetRef.current.style.top = `${newY}px`;
+      // }
+      if (onMove && widgetRef.current) {
+        onMove(widget.id, {x: newX, y: newY});
       }
     },
     [moving, widget]
   );
 
   const handleMoveEnd = () => {
-    // setMoving(false);
     moving.current = false;
     setMovingWidgetId('');
     // Remove event listeners

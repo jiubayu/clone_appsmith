@@ -64,6 +64,22 @@ export interface EditorState {
   recordAction: (action: Omit<HistoryAction, 'timestamp' | 'id'>) => void;
 }
 
+const pushHistory = (state: EditorState, action: Omit<HistoryAction, 'timestamp' | 'id'>) => {
+  // 重置 history
+  // if (state.historyIndex !== -1) {
+  //   state.history = state.history.slice(0, state.historyIndex + 1);
+  // }
+  if (state.historyIndex < state.history.length - 1) {
+    state.history = state.history.slice(0, state.historyIndex + 1);
+  }
+  state.history.push({
+    ...action,
+    timestamp: Date.now(),
+    id: Math.random().toString(36).substring(2, 9),
+  });
+  state.historyIndex = state.history.length - 1;
+}
+
 export const useEditorStore = create<EditorState>()(
   persist(
     (set, get) => ({
@@ -139,6 +155,7 @@ export const useEditorStore = create<EditorState>()(
           widgets: [...state.widgets, widget],
           selectedWidgetId: widget.id
         }));
+        pushHistory(get(), { type: 'ADD_WIDGET', payload: { widget } });
         recordAction({
           type: 'ADD_WIDGET',
           payload: { widget }
@@ -154,7 +171,8 @@ export const useEditorStore = create<EditorState>()(
             widget.id === widgetId ? { ...widget, ...data } : widget
           )
         }));
-
+        pushHistory(get(), { type: 'UPDATE_WIDGET', payload: { widgetId, oldData: originalWidget, newData: data } });
+        // console.log(get().historyIndex,'get().historyIndex');
         recordAction({
           type: 'UPDATE_WIDGET',
           payload: { widgetId, oldData: originalWidget, newData: data }
@@ -170,6 +188,7 @@ export const useEditorStore = create<EditorState>()(
           selectedWidgetId: state.selectedWidgetId === widgetId ? null : state.selectedWidgetId
         }));
 
+        pushHistory(get(), { type: 'REMOVE_WIDGET', payload: { widget: widgetToRemove } });
         recordAction({
           type: 'REMOVE_WIDGET',
           payload: { widget: widgetToRemove }
@@ -263,6 +282,7 @@ export const useEditorStore = create<EditorState>()(
       // Undo/Redo functions
       canUndo: () => {
         const state = get();
+        console.log(state.historyIndex, 'state.historyIndex');
         return state.historyIndex >= 0;
       },
 

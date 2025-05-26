@@ -11,7 +11,7 @@ export function intercept(script: string, dataTree: Record<string, any>) {
   let evalError = ''
 
   try {
-    debugger;
+    // debugger;
     const results = snippetScript?.map(script => {
       // user
       const scriptValue = script.replace(/{{|}}/g, '');
